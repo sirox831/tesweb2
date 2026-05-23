@@ -741,6 +741,10 @@
           <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>Pages</button>
       </div>
       <div class="err-box" id="gh-r-err"></div>
+      <!-- Redeploy button: shown after update so Vercel gets the new files -->
+      <button id="gh-redeploy-btn" class="btn" onclick="redeployVercelFromGh()" style="display:none;margin-bottom:10px;font-size:12px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="white" style="vertical-align:middle;margin-right:6px"><path d="M14 5L24 22H4L14 5Z"/></svg>Redeploy ke Vercel sekarang
+      </button>
       <button class="back-btn" onclick="resetGh()" style="border-color:#238636;color:#238636;">
         <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:4px"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>Upload Lagi
       </button>
@@ -1732,9 +1736,11 @@ function showGhResult(type, err) {
   if (type === 'ok') {
     document.getElementById('gh-r-icon').innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#238636" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
     document.getElementById('gh-r-title').textContent = ghMode === 'update' ? 'Update Berhasil!' : 'Upload Berhasil!';
-    document.getElementById('gh-r-sub').textContent = ghMode === 'update' ? 'Repository berhasil di-update dengan file baru.' : 'Repository kamu sudah live di GitHub.';
+    document.getElementById('gh-r-sub').textContent = ghMode === 'update' ? 'Repository berhasil di-update. Redeploy ke Vercel agar perubahan live.' : 'Repository kamu sudah live di GitHub.';
     document.getElementById('gh-r-repo-url').textContent = ghDeployedRepoUrl;
     document.getElementById('gh-r-repo-row').style.display = 'flex';
+    // Show redeploy button only in update mode
+    document.getElementById('gh-redeploy-btn').style.display = ghMode === 'update' ? 'block' : 'none';
     if (ghDeployedPagesUrl) {
       document.getElementById('gh-r-pages-url').textContent = ghDeployedPagesUrl + ' (aktif dalam ~1 menit)';
       document.getElementById('gh-r-pages-row').style.display = 'flex';
@@ -1756,6 +1762,41 @@ function sendToVercel() {
   if (ghTok) document.getElementById('gh-vercel-token').value = ghTok;
   onGhRepoUrlInput();
   document.querySelector('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function redeployVercelFromGh() {
+  // Check Vercel token
+  const vercelToken = document.getElementById('api-token').value.trim();
+  if (!vercelToken) {
+    alert('Masukkan Vercel API Token di card Vercel terlebih dahulu.');
+    document.querySelector('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  const projectName = document.getElementById('project-name').value.trim();
+  if (!projectName) {
+    alert('Masukkan Nama Project di card Vercel terlebih dahulu.');
+    document.querySelector('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  if (!ghDeployedRepoUrl) return;
+
+  // Pre-fill Vercel GitHub tab silently
+  switchDeployTab('github');
+  document.getElementById('gh-repo-url-input').value = ghDeployedRepoUrl;
+  const ghTok = document.getElementById('gh-token').value.trim();
+  if (ghTok) document.getElementById('gh-vercel-token').value = ghTok;
+
+  // Hide GH result, show progress feedback on the GH card
+  document.getElementById('gh-redeploy-btn').textContent = '⏳ Sedang redeploy...';
+  document.getElementById('gh-redeploy-btn').disabled = true;
+
+  // Trigger deploy from GitHub directly
+  try {
+    await deployFromGithub();
+  } finally {
+    document.getElementById('gh-redeploy-btn').innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="white" style="vertical-align:middle;margin-right:6px"><path d="M14 5L24 22H4L14 5Z"/></svg>Redeploy ke Vercel sekarang';
+    document.getElementById('gh-redeploy-btn').disabled = false;
+  }
 }
 
 function copyGhUrl(type) {
@@ -1781,6 +1822,7 @@ function resetGh() {
   ['gs1','gs2','gs3','gs4','gs5'].forEach(s => ghStep(s, ''));
   ghProg(0); clearGhFile();
   ghDeployedRepoUrl = null; ghDeployedPagesUrl = null;
+  document.getElementById('gh-redeploy-btn').style.display = 'none';
   // Keep current mode so user can update again easily
 }
 
