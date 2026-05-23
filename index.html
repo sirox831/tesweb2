@@ -1,0 +1,1923 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deploy To Vercel & GitHub</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #f4f4f0;
+    --card: #DFDFDF;
+    --border: #219CFF;
+    --text: #111;
+    --muted: #444444;
+    --green: #16a34a;
+    --red: #dc2626;
+    --blue: #2563eb;
+    --yellow: #ca8a04;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+
+  .layout {
+    width: 100%;
+    max-width: 1280px;
+    display: grid;
+    grid-template-columns: 380px 380px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 720px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* GitHub card accent */
+  .card.github-card {
+    border-color: #238636;
+  }
+  .card.github-card .header {
+    border-bottom-color: #238636;
+  }
+  .card.github-card input:focus {
+    border-color: #238636;
+  }
+  .card.github-card .drop-zone {
+    border-color: #238636;
+  }
+  .github-logo {
+    width: 32px; height: 32px;
+    background: #24292f;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .btn.github-btn {
+    background: #238636;
+  }
+  .btn.github-btn:hover:not(:disabled) { background: #2ea043; }
+
+  /* GitHub result */
+  .gh-result-url {
+    font-size: 11px; color: #238636; font-family: var(--mono);
+    word-break: break-all;
+  }
+  .url-row.github-url-row {
+    border-color: #238636;
+  }
+  .sm-btn.github-primary {
+    background: #238636; color: white; border-color: #238636;
+  }
+  .sm-btn.github-primary:hover { background: #2ea043; }
+
+  /* GitHub steps */
+  .step.done-gh { color: #238636; }
+  .step.done-gh .dot { background: #238636; }
+
+  /* Repo visibility toggle */
+  .visibility-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .vis-btn {
+    flex: 1;
+    padding: 8px 6px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--mono);
+    cursor: pointer;
+    background: #fafaf8;
+    color: #555;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .vis-btn.active {
+    background: #24292f;
+    color: white;
+    border-color: #24292f;
+  }
+  .vis-btn:hover:not(.active) { border-color: #aaa; }
+
+  /* Checkbox row */
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: #444;
+    margin-bottom: 14px;
+    cursor: pointer;
+  }
+  .check-row input[type="checkbox"] { cursor: pointer; accent-color: #238636; width: 14px; height: 14px; }
+
+  /* GitHub progress */
+  #gh-progress { display: none; }
+  #gh-progress.show { display: block; }
+  #gh-result { display: none; }
+  #gh-result.show { display: block; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    width: 32px; height: 32px;
+    background: #000;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .header-text h1 { font-size: 15px; font-weight: 600; }
+  .header-text p { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 1px; }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-family: var(--mono);
+  }
+
+  .field { margin-bottom: 14px; }
+
+  .input-wrap { position: relative; }
+
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 36px 9px 11px;
+    font-size: 13px;
+    font-family: var(--sans);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    background: #fafaf8;
+  }
+
+  input:focus { border-color: #000; background: white; }
+  input::placeholder { color: #bbb; }
+
+  .eye-btn {
+    position: absolute;
+    right: 10px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    cursor: pointer; color: #aaa; padding: 2px;
+    display: flex; align-items: center;
+  }
+  .eye-btn:hover { color: #555; }
+
+  .drop-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    padding: 24px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    background: #fafaf8;
+  }
+  .drop-zone:hover, .drop-zone.over { border-color: #000; background: #f5f5f0; }
+  .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-main { font-size: 13px; font-weight: 500; color: #333; margin-bottom: 3px; }
+  .drop-sub { font-size: 11px; color: #aaa; font-family: var(--mono); }
+
+  .file-info {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #d1fae5;
+    border-radius: 7px;
+    padding: 8px 11px;
+    margin-top: 8px;
+    background: #f0fdf4;
+  }
+  .file-info.show { display: flex; }
+  .file-info-text { flex: 1; }
+  .file-info-name { font-size: 12px; font-weight: 600; font-family: var(--mono); }
+  .file-info-size { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .clear-btn { background: none; border: none; color: #aaa; cursor: pointer; font-size: 18px; line-height: 1; }
+  .clear-btn:hover { color: var(--red); }
+
+  .btn {
+    width: 100%;
+    padding: 11px;
+    background: #000;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 4px;
+    font-family: var(--mono);
+    letter-spacing: 0.02em;
+  }
+  .btn:hover:not(:disabled) { background: #222; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  #progress { display: none; }
+  #progress.show { display: block; }
+  .prog-bar-bg { height: 3px; background: #eee; border-radius: 99px; overflow: hidden; margin-bottom: 20px; }
+  .prog-bar { height: 100%; background: #000; border-radius: 99px; transition: width 0.3s; width: 0%; }
+  .steps { display: flex; flex-direction: column; gap: 8px; }
+  .step { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #bbb; font-family: var(--mono); }
+  .step.active { color: #111; font-weight: 600; }
+  .step.done { color: var(--green); }
+  .step.fail { color: var(--red); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #ddd; flex-shrink: 0; }
+  .step.active .dot { background: #111; }
+  .step.done .dot { background: var(--green); }
+  .step.fail .dot { background: var(--red); }
+
+  #result { display: none; }
+  #result.show { display: block; }
+  .result-head { text-align: center; margin-bottom: 16px; }
+  .result-icon { font-size: 28px; margin-bottom: 6px; display:flex; justify-content:center; }
+  .result-title { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+  .result-sub { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+  .url-row {
+    display: flex; gap: 6px; align-items: center;
+    background: #f5f5f0; border: 1px solid var(--border);
+    border-radius: 7px; padding: 8px 11px; margin-bottom: 10px;
+  }
+  .url-text { flex: 1; font-size: 11px; color: var(--blue); word-break: break-all; font-family: var(--mono); }
+  .sm-btn {
+    background: white; border: 1px solid var(--border);
+    border-radius: 5px; font-size: 11px; font-weight: 600;
+    padding: 5px 10px; cursor: pointer; color: #333;
+    transition: all 0.15s; white-space: nowrap; font-family: var(--mono);
+  }
+  .sm-btn:hover { border-color: #aaa; }
+  .sm-btn.primary { background: #000; color: white; border-color: #000; }
+  .sm-btn.primary:hover { background: #222; }
+  .sm-btn.danger { background: #fff; color: var(--red); border-color: #fecaca; }
+  .sm-btn.danger:hover { background: #fff5f5; border-color: var(--red); }
+
+  .err-box {
+    background: #fff5f5; border: 1px solid #fecaca;
+    border-radius: 7px; padding: 9px 11px;
+    font-size: 11px; color: #b91c1c;
+    font-family: var(--mono); word-break: break-word;
+    margin-bottom: 10px; display: none;
+  }
+  .back-btn {
+    width: 100%; padding: 9px;
+    background: none; border: 1px solid var(--border);
+    border-radius: 7px; font-size: 12px;
+    color: #666; cursor: pointer; transition: all 0.15s;
+    font-family: var(--mono);
+  }
+  .back-btn:hover { border-color: #aaa; color: #111; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+  .hint { font-size: 11px; color: #aaa; margin-top: 5px; line-height: 1.5; font-family: var(--mono); }
+
+  /* Deploy mode tabs */
+  .deploy-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f0f0ec;
+  }
+  .deploy-tab {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--mono);
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: #777;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .deploy-tab.active {
+    background: #000;
+    color: white;
+  }
+  .deploy-tab:not(.active):hover { color: #222; background: #e5e5e0; }
+
+  /* History Panel */
+  .history-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .history-title { font-size: 13px; font-weight: 600; font-family: var(--mono); }
+  .history-count {
+    font-size: 10px; font-family: var(--mono);
+    background: #111; color: white;
+    border-radius: 99px; padding: 2px 8px;
+  }
+
+  .history-empty {
+    text-align: center;
+    padding: 40px 16px;
+    color: var(--muted);
+    font-size: 12px;
+    font-family: var(--mono);
+    line-height: 1.8;
+  }
+  .history-empty-icon { font-size: 28px; margin-bottom: 10px; opacity: 0.3; }
+
+  .deploy-item {
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 13px;
+    margin-bottom: 10px;
+    background: #fafaf8;
+    transition: border-color 0.15s;
+  }
+  .deploy-item:hover { border-color: #ccc; background: white; }
+
+  .deploy-item-top {
+    display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    margin-top: 4px; flex-shrink: 0;
+  }
+  .status-dot.live { background: var(--green); box-shadow: 0 0 0 2px #dcfce7; }
+  .status-dot.error { background: var(--red); }
+  .deploy-name {
+    font-size: 13px; font-weight: 600; font-family: var(--mono);
+    flex: 1; word-break: break-all;
+  }
+  .deploy-time { font-size: 10px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+
+  .deploy-url {
+    font-size: 11px; color: var(--blue); font-family: var(--mono);
+    word-break: break-all; margin-bottom: 10px;
+    text-decoration: none;
+    display: block;
+  }
+  .deploy-url:hover { text-decoration: underline; }
+
+  .deploy-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .deploy-actions .sm-btn { flex: 1; text-align: center; min-width: 60px; }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-family: var(--mono);
+    padding: 1px 7px; border-radius: 99px; font-weight: 600;
+  }
+  .tag.live { background: #dcfce7; color: #15803d; }
+  .tag.error { background: #fee2e2; color: #b91c1c; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    padding: 28px;
+    width: 100%;
+    max-width: 420px;
+    margin: 16px;
+    animation: pop 0.18s ease;
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.96) translateY(6px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .modal-title { font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+  .modal-sub { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-bottom: 16px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
+  .modal-actions button { flex: 1; padding: 10px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--mono); border: 1px solid var(--border); transition: all 0.15s; }
+  .modal-cancel { background: white; color: #333; }
+  .modal-cancel:hover { border-color: #aaa; }
+  .modal-confirm { background: #000; color: white; border-color: #000; }
+  .modal-confirm:hover { background: #222; }
+  .modal-danger { background: var(--red); color: white; border-color: var(--red); }
+  .modal-danger:hover { background: #b91c1c; }
+
+  .warn-box {
+    background: #fffbeb; border: 1px solid #fde68a;
+    border-radius: 7px; padding: 9px 11px; margin-bottom: 14px;
+    font-size: 11px; color: var(--yellow);
+    font-family: var(--mono); line-height: 1.6;
+  }
+
+  .token-needed {
+    text-align: center; padding: 32px 16px;
+    font-size: 11px; color: var(--muted); font-family: var(--mono); line-height: 1.8;
+  }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 11px; height: 11px;
+    border: 2px solid #ddd;
+    border-top-color: #555;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .refresh-btn {
+    background: none; border: 1px solid var(--border);
+    border-radius: 5px; padding: 3px 9px;
+    font-size: 10px; font-family: var(--mono);
+    cursor: pointer; color: var(--muted);
+    transition: all 0.15s;
+  }
+  .refresh-btn:hover { border-color: #aaa; color: #111; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- LEFT: Deploy Form -->
+  <div class="card">
+    <div class="header">
+      <div class="logo">
+        <svg width="18" height="18" viewBox="0 0 28 28" fill="none">
+          <path d="M14 5L24 22H4L14 5Z" fill="white"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h1>Deploy To Vercel</h1>
+        <p>upload ZIP ➞ deploy otomatis</p>
+      </div>
+    </div>
+
+    <div id="form-section">
+      <div class="field">
+        <label>API Token</label>
+        <div class="input-wrap">
+          <input type="password" id="api-token" placeholder="Paste Vercel token..." oninput="onTokenChange()">
+          <button class="eye-btn" onclick="togglePw()">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <div class="hint">Belum punya token? <a href="https://vercel.com/account/settings/tokens" target="_blank" style="color:var(--blue);text-decoration:none;">Buat di sini →</a></div>
+      </div>
+
+      <div class="field">
+        <label>Nama Project <span style="color:#dc2626;font-weight:600">*</span></label>
+        <div class="input-wrap">
+          <input type="text" id="project-name" placeholder="nama-website-kamu" oninput="onProjectNameInput()" autocomplete="off">
+          <span id="name-check-icon" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:13px;display:none;"></span>
+        </div>
+        <div class="hint" id="name-hint">Nama ini menentukan URL: <span style="color:var(--blue)">nama-website-kamu.vercel.app</span><br>Gunakan huruf kecil, angka, dan tanda hubung saja.</div>
+        <div id="name-taken-msg" style="display:none;margin-top:6px;padding:7px 10px;background:#fff5f5;border:1px solid #fecaca;border-radius:7px;font-size:11px;color:#b91c1c;font-family:var(--mono);line-height:1.6;"></div>
+        <div id="name-ok-msg" style="display:none;margin-top:6px;padding:7px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;font-size:11px;color:#15803d;font-family:var(--mono);"></div>
+      </div>
+
+      <hr class="divider">
+
+      <!-- Deploy Mode Tabs -->
+      <div class="deploy-tabs">
+        <button class="deploy-tab active" id="tab-zip" onclick="switchDeployTab('zip')">📦 Upload ZIP</button>
+        <button class="deploy-tab" id="tab-github" onclick="switchDeployTab('github')">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+          Dari GitHub
+        </button>
+      </div>
+
+      <!-- Tab: Upload ZIP (default) -->
+      <div id="tab-content-zip">
+        <div class="field">
+          <label>File ZIP</label>
+          <div class="drop-zone" id="drop-zone">
+            <input type="file" id="zip-input" accept=".zip">
+            <div class="drop-main">Drag & drop file ZIP</div>
+            <div class="drop-sub">klik untuk pilih · wajib ada index.html</div>
+          </div>
+          <div class="file-info" id="file-info">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="2.5">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div class="file-info-text">
+              <div class="file-info-name" id="fname"></div>
+              <div class="file-info-size" id="fsize"></div>
+            </div>
+            <button class="clear-btn" onclick="clearFile()">×</button>
+          </div>
+        </div>
+        <button class="btn" onclick="deploy()">▲ Deploy</button>
+      </div>
+
+      <!-- Tab: Deploy from GitHub -->
+      <div id="tab-content-github" style="display:none;">
+        <div class="field">
+          <label>GitHub Token <span style="color:#dc2626;font-weight:600">*</span></label>
+          <div class="input-wrap">
+            <input type="password" id="gh-vercel-token" placeholder="ghp_xxxxxxxxxxxx..." oninput="onGhVercelTokenChange()">
+            <button class="eye-btn" onclick="toggleGhVercelPw()">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <div class="hint">Token GitHub untuk akses repo. Perlu scope <code>repo</code>.</div>
+        </div>
+        <div class="field">
+          <label>URL Repository GitHub <span style="color:#dc2626;font-weight:600">*</span></label>
+          <input type="text" id="gh-repo-url-input" placeholder="https://github.com/user/repo" oninput="onGhRepoUrlInput()" autocomplete="off">
+          <div id="gh-repo-url-msg" class="hint" style="margin-top:5px;display:none;padding:7px 10px;border-radius:7px;font-size:11px;font-family:var(--mono);line-height:1.6;"></div>
+        </div>
+        <div class="hint" style="margin-bottom:14px;padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:7px;font-family:var(--mono);font-size:11px;color:#1d4ed8;">
+          💡 File dari repo GitHub akan di-fetch langsung — tidak perlu upload ZIP lagi.
+        </div>
+        <button class="btn" onclick="deployFromGithub()">▲ Deploy dari GitHub</button>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div id="progress">
+      <div class="prog-bar-bg"><div class="prog-bar" id="pbar"></div></div>
+      <div class="steps">
+        <div class="step" id="s1"><div class="dot"></div> Membaca file ZIP</div>
+        <div class="step" id="s2"><div class="dot"></div> Mengekstrak file</div>
+        <div class="step" id="s3"><div class="dot"></div> Upload ke Vercel</div>
+        <div class="step" id="s4"><div class="dot"></div> Membuat deployment</div>
+        <div class="step" id="s5"><div class="dot"></div> Menunggu siap</div>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div id="result">
+      <div class="result-head">
+        <div class="result-icon" id="r-icon"></div>
+        <div class="result-title" id="r-title"></div>
+        <div class="result-sub" id="r-sub"></div>
+      </div>
+      <div class="url-row" id="r-url-row" style="display:none">
+        <span class="url-text" id="r-url"></span>
+        <button class="sm-btn" onclick="copyUrl()">Salin</button>
+        <button class="sm-btn primary" onclick="openUrl()"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>Buka</button>
+      </div>
+      <div class="err-box" id="r-err"></div>
+      <button class="back-btn" onclick="reset()"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:4px"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>Deploy Lagi</button>
+    </div>
+  </div>
+
+  <!-- MIDDLE: GitHub Upload Card -->
+  <div class="card github-card">
+    <div class="header">
+      <div class="github-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+          <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h1>Upload To GitHub</h1>
+        <p>upload ZIP ➞ push ke repository</p>
+      </div>
+    </div>
+
+    <div id="gh-form-section">
+      <div class="field">
+        <label>GitHub Token</label>
+        <div class="input-wrap">
+          <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx..." oninput="onGhTokenChange()">
+          <button class="eye-btn" onclick="toggleGhPw()">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <div class="hint">Perlu <code>repo</code> scope. <a href="https://github.com/settings/tokens/new" target="_blank" style="color:#238636;text-decoration:none;">Buat token →</a></div>
+      </div>
+
+      <div class="field">
+        <label>Nama Repository <span style="color:#dc2626;font-weight:600">*</span></label>
+        <div class="input-wrap">
+          <input type="text" id="gh-repo-name" placeholder="nama-repository-kamu" oninput="onGhRepoInput()" autocomplete="off">
+          <span id="gh-name-check-icon" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:13px;display:none;"></span>
+        </div>
+        <div id="gh-name-msg" class="hint" style="margin-top:5px;display:none;padding:7px 10px;border-radius:7px;font-size:11px;font-family:var(--mono);line-height:1.6;"></div>
+      </div>
+
+      <div class="field">
+        <label>Visibilitas Repository</label>
+        <div class="visibility-toggle">
+          <button class="vis-btn active" id="vis-public" onclick="setVisibility('public')">
+            🌍 Public
+          </button>
+          <button class="vis-btn" id="vis-private" onclick="setVisibility('private')">
+            🔒 Private
+          </button>
+        </div>
+      </div>
+
+      <label class="check-row">
+        <input type="checkbox" id="gh-init-pages"> Aktifkan GitHub Pages (gh-pages branch)
+      </label>
+
+      <hr class="divider">
+
+      <div class="field">
+        <label>File ZIP</label>
+        <div class="drop-zone" id="gh-drop-zone">
+          <input type="file" id="gh-zip-input" accept=".zip">
+          <div class="drop-main">Drag & drop file ZIP</div>
+          <div class="drop-sub">klik untuk pilih · semua file akan di-push</div>
+        </div>
+        <div class="file-info" id="gh-file-info">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#238636" stroke-width="2.5">
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <div class="file-info-text">
+            <div class="file-info-name" id="gh-fname"></div>
+            <div class="file-info-size" id="gh-fsize"></div>
+          </div>
+          <button class="clear-btn" onclick="clearGhFile()">×</button>
+        </div>
+      </div>
+
+      <button class="btn github-btn" onclick="uploadToGithub()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="vertical-align:middle;margin-right:6px"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+        Push to GitHub
+      </button>
+    </div>
+
+    <!-- GitHub Progress -->
+    <div id="gh-progress">
+      <div class="prog-bar-bg"><div class="prog-bar" id="gh-pbar" style="background:#238636;"></div></div>
+      <div class="steps">
+        <div class="step" id="gs1"><div class="dot"></div> Membaca file ZIP</div>
+        <div class="step" id="gs2"><div class="dot"></div> Mengekstrak file</div>
+        <div class="step" id="gs3"><div class="dot"></div> Membuat/cek repository</div>
+        <div class="step" id="gs4"><div class="dot"></div> Upload file ke GitHub</div>
+        <div class="step" id="gs5"><div class="dot"></div> Commit & finalisasi</div>
+      </div>
+    </div>
+
+    <!-- GitHub Result -->
+    <div id="gh-result">
+      <div class="result-head">
+        <div class="result-icon" id="gh-r-icon"></div>
+        <div class="result-title" id="gh-r-title"></div>
+        <div class="result-sub" id="gh-r-sub"></div>
+      </div>
+      <div class="url-row github-url-row" id="gh-r-repo-row" style="display:none">
+        <span class="url-text gh-result-url" id="gh-r-repo-url"></span>
+        <button class="sm-btn" onclick="copyGhUrl('repo')">Salin</button>
+        <button class="sm-btn github-primary" onclick="openGhUrl('repo')">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>Repo</button>
+        <button class="sm-btn" style="background:#000;color:white;border-color:#000;" onclick="sendToVercel()" title="Deploy repo ini ke Vercel">▲ Deploy</button>
+      </div>
+      <div class="url-row github-url-row" id="gh-r-pages-row" style="display:none">
+        <span class="url-text gh-result-url" id="gh-r-pages-url"></span>
+        <button class="sm-btn" onclick="copyGhUrl('pages')">Salin</button>
+        <button class="sm-btn github-primary" onclick="openGhUrl('pages')">
+          <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>Pages</button>
+      </div>
+      <div class="err-box" id="gh-r-err"></div>
+      <button class="back-btn" onclick="resetGh()" style="border-color:#238636;color:#238636;">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:4px"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>Upload Lagi
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT: History Panel -->
+  <div class="card">
+    <div class="history-header">
+      <span class="history-title">// Riwayat Deploy</span>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span class="history-count" id="history-count">0</span>
+        <button class="refresh-btn" onclick="loadHistory()"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>Refresh</button>
+      </div>
+    </div>
+    <div id="history-token-needed" class="token-needed">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;opacity:0.3"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/></svg><br>Masukkan API Token<br>untuk melihat riwayat deploy.
+    </div>
+    <div id="history-list"></div>
+  </div>
+
+</div>
+
+
+<!-- Modal: Rename -->
+<div class="modal-overlay" id="modal-rename">
+  <div class="modal">
+    <div class="modal-title"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg>Update Nama Project</div>
+    <div class="modal-sub" id="rename-current-name"></div>
+    <div class="warn-box">Mengganti nama project akan mengubah URL deployment. Pastikan tidak ada layanan yang masih menggunakan URL lama.</div>
+    <div class="field">
+      <label>Nama Baru</label>
+      <input type="text" id="rename-input" placeholder="nama-baru-project">
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('modal-rename')">Batal</button>
+      <button class="modal-confirm" id="btn-rename-confirm" onclick="confirmRename()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Update File -->
+<div class="modal-overlay" id="modal-update-file">
+  <div class="modal">
+    <div class="modal-title"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>Update File Website</div>
+    <div class="modal-sub" id="update-file-project-name"></div>
+    <div class="warn-box">Upload ZIP baru akan membuat deployment baru untuk project yang sama — bukan project baru.</div>
+    <div class="field">
+      <label>File ZIP Baru</label>
+      <div class="drop-zone" id="modal-drop-zone">
+        <input type="file" id="modal-zip-input" accept=".zip">
+        <div class="drop-main">Drag & drop file ZIP</div>
+        <div class="drop-sub">klik untuk pilih · wajib ada index.html</div>
+      </div>
+      <div class="file-info" id="modal-file-info">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#16a34a" stroke-width="2.5">
+          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div class="file-info-text">
+          <div class="file-info-name" id="modal-fname"></div>
+          <div class="file-info-size" id="modal-fsize"></div>
+        </div>
+        <button class="clear-btn" onclick="clearModalFile()">×</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('modal-update-file')">Batal</button>
+      <button class="modal-confirm" id="btn-update-confirm" onclick="confirmUpdateFile()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Delete -->
+<div class="modal-overlay" id="modal-delete">
+  <div class="modal">
+    <div class="modal-title"><svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>Hapus Project</div>
+    <div class="modal-sub" id="delete-project-name"></div>
+    <div class="warn-box">Project dan semua deployment-nya akan dihapus dari Vercel secara permanen. Tindakan ini tidak bisa dibatalkan.</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal('modal-delete')">Batal</button>
+      <button class="modal-danger" id="btn-delete-confirm" onclick="confirmDelete()">Hapus Permanen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Update Progress -->
+<div class="modal-overlay" id="modal-update-progress">
+  <div class="modal" style="text-align:center;padding:36px 28px;">
+    <div style="margin-bottom:12px;display:flex;justify-content:center;"><svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 0015 0m-15 0a7.5 7.5 0 1115 0m-15 0H3m16.5 0H21m-1.5 0H12m-8.457 3.077l1.41-.513m14.095-5.13l1.41-.513M5.106 17.785l1.15-.964m11.49-9.642l1.149-.964M7.501 19.795l.75-1.3m7.499-12.99l.75-1.3m-6.063 16.658l.26-1.477m2.605-14.772l.26-1.477m0 17.726l-.26-1.477M10.698 4.614l-.26-1.477M16.5 19.794l-.75-1.299M7.5 4.205L12 12m6.894 5.785l-1.149-.964M6.256 7.178l-1.15-.964m15.352 8.864l-1.41-.513M4.954 9.435l-1.41-.514M12.002 12l-3.75 6.495"/></svg></div>
+    <div style="font-weight:700;font-size:14px;margin-bottom:6px;">Mengupdate Website...</div>
+    <div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:20px;" id="update-progress-msg">Memproses...</div>
+    <div class="prog-bar-bg"><div class="prog-bar" id="update-pbar"></div></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+let file = null, deployedUrl = null;
+let modalFile = null;
+let activeProjectId = null, activeProjectName = null;
+let deployHistory = [];
+
+// ─── Token watcher ───────────────────────────────────────────
+function onTokenChange() {
+  const token = document.getElementById('api-token').value.trim();
+  if (token.length > 10) {
+    document.getElementById('history-token-needed').style.display = 'none';
+    loadHistory();
+  } else {
+    document.getElementById('history-token-needed').style.display = 'block';
+    document.getElementById('history-list').innerHTML = '';
+    document.getElementById('history-count').textContent = '0';
+  }
+}
+
+// ─── Load History ─────────────────────────────────────────────
+async function loadHistory() {
+  const token = document.getElementById('api-token').value.trim();
+  if (!token || token.length < 10) return;
+  const listEl = document.getElementById('history-list');
+  listEl.innerHTML = `<div style="text-align:center;padding:24px;font-size:12px;color:var(--muted);font-family:var(--mono);"><span class="loading-spinner"></span>Memuat...</div>`;
+  try {
+    const r = await fetch('https://api.vercel.com/v9/projects?limit=20', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!r.ok) throw new Error('Gagal memuat project ('+r.status+')');
+    const data = await r.json();
+    deployHistory = (data.projects || []).map(p => ({
+      projectId: p.id,
+      name: p.name,
+      url: p.name ? 'https://' + p.name + '.vercel.app' : null,
+      state: p.latestDeployments?.[0]?.readyState || p.latestDeployments?.[0]?.state || 'UNKNOWN',
+      time: p.updatedAt || p.createdAt
+    }));
+    renderHistory();
+  } catch(e) {
+    listEl.innerHTML = `<div style="text-align:center;padding:24px;font-size:11px;color:var(--red);font-family:var(--mono);"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>${e.message}</div>`;
+  }
+}
+
+function renderHistory() {
+  const listEl = document.getElementById('history-list');
+  document.getElementById('history-count').textContent = deployHistory.length;
+  if (!deployHistory.length) {
+    listEl.innerHTML = `<div class="history-empty"><div class="history-empty-icon">▲</div>Belum ada deployment.<br>Deploy website pertamamu!</div>`;
+    return;
+  }
+  listEl.innerHTML = deployHistory.map((d, i) => {
+    const isLive = d.state === 'READY';
+    const timeStr = d.time ? relTime(d.time) : '';
+    const urlHtml = d.url
+      ? `<a class="deploy-url" href="${esc(d.url)}" target="_blank">${esc(d.url)}</a>`
+      : `<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:10px;">— URL tidak tersedia</div>`;
+    return `<div class="deploy-item">
+      <div class="deploy-item-top">
+        <div class="status-dot ${isLive ? 'live' : 'error'}"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="deploy-name">${esc(d.name)}</div>
+          <div class="deploy-time">${timeStr}&nbsp;&nbsp;<span class="tag ${isLive ? 'live' : 'error'}">${isLive ? '● LIVE' : '✕ ERROR'}</span></div>
+        </div>
+      </div>
+      ${urlHtml}
+      <div class="deploy-actions">
+        <button class="sm-btn" onclick="openRename(${i})"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/></svg>Nama</button>
+        <button class="sm-btn" onclick="openUpdateFile(${i})"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>File</button>
+        ${d.url ? `<button class="sm-btn" onclick="window.open('${esc(d.url)}','_blank')"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>Buka</button>` : ''}
+        <button class="sm-btn danger" onclick="openDelete(${i})"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" style="vertical-align:middle;margin-right:3px"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>Hapus</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function relTime(ts) {
+  const diff = Date.now() - new Date(ts).getTime();
+  const m = Math.floor(diff/60000), h = Math.floor(m/60), d = Math.floor(h/24);
+  if (d > 0) return d + ' hari lalu';
+  if (h > 0) return h + ' jam lalu';
+  if (m > 0) return m + ' menit lalu';
+  return 'Baru saja';
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─── Modals ───────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('show'); });
+});
+
+// ─── Rename ───────────────────────────────────────────────────
+function openRename(idx) {
+  const d = deployHistory[idx];
+  activeProjectId = d.projectId;
+  document.getElementById('rename-current-name').textContent = 'Project: ' + d.name;
+  document.getElementById('rename-input').value = d.name;
+  openModal('modal-rename');
+}
+
+async function confirmRename() {
+  const token = document.getElementById('api-token').value.trim();
+  const newName = document.getElementById('rename-input').value.trim();
+  if (!newName) return alert('Nama tidak boleh kosong.');
+  const btn = document.getElementById('btn-rename-confirm');
+  btn.textContent = 'Menyimpan...'; btn.disabled = true;
+  try {
+    const r = await fetch(`https://api.vercel.com/v9/projects/${activeProjectId}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: sanitize(newName) })
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(()=>({}));
+      throw new Error(e.error?.message || 'Gagal mengganti nama ('+r.status+')');
+    }
+    closeModal('modal-rename');
+    await loadHistory();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.textContent = 'Simpan'; btn.disabled = false;
+  }
+}
+
+// ─── Update File ──────────────────────────────────────────────
+function openUpdateFile(idx) {
+  const d = deployHistory[idx];
+  activeProjectId = d.projectId;
+  activeProjectName = d.name;
+  document.getElementById('update-file-project-name').textContent = 'Project: ' + d.name;
+  clearModalFile();
+  openModal('modal-update-file');
+}
+
+const mdz = document.getElementById('modal-drop-zone');
+mdz.addEventListener('dragover', e => { e.preventDefault(); mdz.classList.add('over'); });
+mdz.addEventListener('dragleave', () => mdz.classList.remove('over'));
+mdz.addEventListener('drop', e => {
+  e.preventDefault(); mdz.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f?.name.endsWith('.zip')) setModalFile(f);
+});
+document.getElementById('modal-zip-input').addEventListener('change', e => {
+  if (e.target.files[0]) setModalFile(e.target.files[0]);
+});
+
+function setModalFile(f) {
+  modalFile = f;
+  document.getElementById('modal-fname').textContent = f.name;
+  document.getElementById('modal-fsize').textContent = fmtBytes(f.size);
+  document.getElementById('modal-file-info').classList.add('show');
+}
+function clearModalFile() {
+  modalFile = null;
+  document.getElementById('modal-zip-input').value = '';
+  document.getElementById('modal-file-info').classList.remove('show');
+}
+
+async function confirmUpdateFile() {
+  if (!modalFile) return alert('Pilih file ZIP terlebih dahulu.');
+  const token = document.getElementById('api-token').value.trim();
+  closeModal('modal-update-file');
+  openModal('modal-update-progress');
+  setUpdProg(5, 'Membaca file ZIP...');
+  try {
+    const buf = await modalFile.arrayBuffer();
+    setUpdProg(15, 'Mengekstrak file...');
+    const zip = await JSZip.loadAsync(buf);
+    const all = [], jobs = [];
+    zip.forEach((path, entry) => {
+      if (!entry.dir) jobs.push(entry.async('base64').then(d => all.push({path, d})));
+    });
+    await Promise.all(jobs);
+    const root = commonRoot(all.map(f => f.path));
+    if (root) all.forEach(f => f.path = f.path.slice(root.length));
+    setUpdProg(30, 'Mengupload file...');
+    const deployFiles = [];
+    for (const f of all) {
+      const raw = atob(f.d);
+      const bytes = new Uint8Array(raw.length);
+      for (let i=0;i<raw.length;i++) bytes[i] = raw.charCodeAt(i);
+      const sha = await sha1hex(bytes);
+      const r = await fetch('https://api.vercel.com/v2/files', {
+        method:'POST',
+        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/octet-stream','x-vercel-digest':sha},
+        body: bytes
+      });
+      if (!r.ok && r.status!==409) throw new Error('Upload gagal ('+r.status+')');
+      deployFiles.push({file:'/'+f.path, sha, size:bytes.length});
+    }
+    setUpdProg(60, 'Membuat deployment baru...');
+    const dr = await fetch('https://api.vercel.com/v13/deployments', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name: activeProjectName,
+        files: deployFiles,
+        projectSettings: { framework: null },
+        target: 'production'
+      })
+    });
+    if (!dr.ok) {
+      const e = await dr.json().catch(()=>({}));
+      throw new Error(e.error?.message || 'Deploy gagal ('+dr.status+')');
+    }
+    const dd = await dr.json();
+    setUpdProg(75, 'Menunggu deployment siap...');
+    await waitReady(token, dd.id);
+    setUpdProg(100, 'Selesai!');
+    setTimeout(async () => { closeModal('modal-update-progress'); await loadHistory(); }, 900);
+  } catch(e) {
+    closeModal('modal-update-progress');
+    alert('Error: ' + e.message);
+  }
+}
+
+function setUpdProg(pct, msg) {
+  document.getElementById('update-pbar').style.width = pct + '%';
+  document.getElementById('update-progress-msg').textContent = msg;
+}
+
+// ─── Delete ───────────────────────────────────────────────────
+function openDelete(idx) {
+  const d = deployHistory[idx];
+  activeProjectId = d.projectId;
+  document.getElementById('delete-project-name').textContent = 'Project: ' + d.name;
+  openModal('modal-delete');
+}
+
+async function confirmDelete() {
+  const token = document.getElementById('api-token').value.trim();
+  const btn = document.getElementById('btn-delete-confirm');
+  btn.textContent = 'Menghapus...'; btn.disabled = true;
+  try {
+    const r = await fetch(`https://api.vercel.com/v9/projects/${activeProjectId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!r.ok && r.status !== 204) {
+      const e = await r.json().catch(()=>({}));
+      throw new Error(e.error?.message || 'Gagal menghapus ('+r.status+')');
+    }
+    closeModal('modal-delete');
+    await loadHistory();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.textContent = 'Hapus Permanen'; btn.disabled = false;
+  }
+}
+
+// ─── Cek Nama Project ─────────────────────────────────────────
+let nameCheckTimer = null;
+let nameIsAvailable = null;
+
+function onProjectNameInput() {
+  const name = document.getElementById('project-name').value.trim();
+  const icon = document.getElementById('name-check-icon');
+  const takenMsg = document.getElementById('name-taken-msg');
+  const okMsg = document.getElementById('name-ok-msg');
+
+  takenMsg.style.display = 'none';
+  okMsg.style.display = 'none';
+  icon.style.display = 'none';
+  nameIsAvailable = null;
+
+  clearTimeout(nameCheckTimer);
+  if (!name || name.length < 2) return;
+
+  const token = document.getElementById('api-token').value.trim();
+  if (!token) return;
+
+  icon.style.display = 'inline';
+  icon.innerHTML = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#999" stroke-width="2" style="vertical-align:middle;animation:spin 0.7s linear infinite"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>';
+
+  nameCheckTimer = setTimeout(async () => {
+    try {
+      const sanitized = sanitize(name);
+      const r = await fetch(`https://api.vercel.com/v9/projects/${sanitized}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (r.status === 200) {
+        // Project dengan nama ini sudah ada (milik user ini)
+        nameIsAvailable = false;
+        icon.textContent = '❌';
+        takenMsg.style.display = 'block';
+        takenMsg.textContent = '⚠️ Nama "' + sanitized + '" sudah dipakai. Gunakan nama lain agar URL tidak berubah-ubah.';
+      } else if (r.status === 403) {
+        // Project ada tapi milik orang lain / nama sudah taken
+        nameIsAvailable = false;
+        icon.textContent = '❌';
+        takenMsg.style.display = 'block';
+        takenMsg.textContent = '⚠️ Nama "' + sanitized + '" sudah dipakai orang lain. Coba nama yang berbeda.';
+      } else if (r.status === 404) {
+        // Nama belum dipakai, aman
+        nameIsAvailable = true;
+        icon.textContent = '✅';
+        okMsg.style.display = 'block';
+        okMsg.textContent = '✅ Nama "' + sanitized + '" tersedia! URL kamu: ' + sanitized + '.vercel.app';
+      } else {
+        icon.style.display = 'none';
+        nameIsAvailable = null;
+      }
+    } catch(e) {
+      icon.style.display = 'none';
+      nameIsAvailable = null;
+    }
+  }, 700);
+}
+
+// ─── Main Deploy ──────────────────────────────────────────────
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f?.name.endsWith('.zip')) setFile(f); });
+document.getElementById('zip-input').addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+
+function setFile(f) {
+  file = f;
+  document.getElementById('fname').textContent = f.name;
+  document.getElementById('fsize').textContent = fmtBytes(f.size);
+  document.getElementById('file-info').classList.add('show');
+}
+function clearFile() {
+  file = null;
+  document.getElementById('zip-input').value = '';
+  document.getElementById('file-info').classList.remove('show');
+}
+function fmtBytes(b) { return b<1024?b+'B':b<1048576?(b/1024).toFixed(1)+'KB':(b/1048576).toFixed(1)+'MB'; }
+function togglePw() { const i=document.getElementById('api-token'); i.type=i.type==='password'?'text':'password'; }
+function step(id, state) { document.getElementById(id).className = 'step ' + state; }
+function prog(n) { document.getElementById('pbar').style.width = n + '%'; }
+
+async function deploy() {
+  const token = document.getElementById('api-token').value.trim();
+  const name = document.getElementById('project-name').value.trim();
+  if (!token) return alert('Masukkan Vercel API Token.');
+  if (!name) return alert('Masukkan nama project.\nNama ini akan menjadi URL website kamu: nama-project.vercel.app');
+  if (nameIsAvailable === false) {
+    document.getElementById('project-name').focus();
+    return alert('Nama project sudah dipakai! Ganti dengan nama lain terlebih dahulu.');
+  }
+  if (!file) return alert('Pilih file ZIP terlebih dahulu.');
+  document.getElementById('form-section').style.display = 'none';
+  document.getElementById('progress').classList.add('show');
+  prog(5);
+  try {
+    step('s1','active');
+    const buf = await file.arrayBuffer();
+    step('s1','done'); prog(15);
+
+    step('s2','active');
+    const zip = await JSZip.loadAsync(buf);
+    const all = [], jobs = [];
+    zip.forEach((path, entry) => {
+      if (!entry.dir) jobs.push(entry.async('base64').then(d => all.push({path, d})));
+    });
+    await Promise.all(jobs);
+    const root = commonRoot(all.map(f => f.path));
+    if (root) all.forEach(f => f.path = f.path.slice(root.length));
+    step('s2','done'); prog(30);
+
+    step('s3','active');
+    const deployFiles = [];
+    for (const f of all) {
+      const raw = atob(f.d);
+      const bytes = new Uint8Array(raw.length);
+      for (let i=0;i<raw.length;i++) bytes[i] = raw.charCodeAt(i);
+      const sha = await sha1hex(bytes);
+      const r = await fetch('https://api.vercel.com/v2/files', {
+        method:'POST',
+        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/octet-stream','x-vercel-digest':sha},
+        body: bytes
+      });
+      if (!r.ok && r.status!==409) throw new Error('Upload gagal ('+r.status+'): '+await r.text());
+      deployFiles.push({file:'/'+f.path, sha, size:bytes.length});
+    }
+    step('s3','done'); prog(60);
+
+    step('s4','active');
+    const dr = await fetch('https://api.vercel.com/v13/deployments', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body: JSON.stringify({name:sanitize(name), files:deployFiles, projectSettings:{framework:null}, target:'production'})
+    });
+    if (!dr.ok) {
+      const e = await dr.json().catch(()=>({}));
+      throw new Error(e.error?.message || 'Deploy gagal ('+dr.status+')');
+    }
+    const dd = await dr.json();
+    const sanitizedName = sanitize(name);
+    const url = 'https://' + sanitizedName + '.vercel.app';
+    step('s4','done'); prog(75);
+
+    step('s5','active');
+    const prodAlias = await waitReady(token, dd.id);
+    step('s5','done'); prog(100);
+
+    const finalUrl = prodAlias || url;
+    deployedUrl = finalUrl;
+    setTimeout(() => { showResult('ok', finalUrl); loadHistory(); }, 300);
+  } catch(err) {
+    ['s1','s2','s3','s4','s5'].forEach(s => { if (document.getElementById(s).className==='step active') step(s,'fail'); });
+    setTimeout(() => showResult('err', null, err.message), 300);
+  }
+}
+
+async function waitReady(token, id) {
+  for (let i=0;i<60;i++) {
+    await new Promise(r=>setTimeout(r,3000));
+    const r = await fetch(`https://api.vercel.com/v13/deployments/${id}`,{headers:{'Authorization':'Bearer '+token}});
+    if (!r.ok) continue;
+    const d = await r.json();
+    if (d.readyState==='READY'||d.state==='READY') {
+      // Return the cleanest production alias (no random suffix)
+      const aliases = d.aliases || d.alias || [];
+      const clean = aliases.find(a => !a.match(/-[a-z0-9]{9}-/)) || aliases[0];
+      return clean ? 'https://' + clean : null;
+    }
+    if (d.readyState==='ERROR'||d.state==='ERROR') throw new Error(d.errorMessage||'Deployment error');
+  }
+  return null;
+}
+
+function showResult(type, url, err) {
+  document.getElementById('progress').classList.remove('show');
+  document.getElementById('result').classList.add('show');
+  if (type==='ok') {
+    deployedUrl = url;
+    document.getElementById('r-icon').innerHTML='<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+    document.getElementById('r-title').textContent='Deploy Berhasil!';
+    document.getElementById('r-sub').textContent='Site kamu sudah live.';
+    document.getElementById('r-url').textContent=url;
+    document.getElementById('r-url-row').style.display='flex';
+  } else {
+    document.getElementById('r-icon').innerHTML='<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    document.getElementById('r-title').textContent='Deploy Gagal';
+    document.getElementById('r-sub').textContent='Terjadi kesalahan.';
+    const eb = document.getElementById('r-err');
+    eb.textContent=err; eb.style.display='block';
+  }
+}
+
+function copyUrl() {
+  navigator.clipboard.writeText(deployedUrl);
+  const b = document.querySelector('#r-url-row .sm-btn');
+  b.textContent='Tersalin!'; setTimeout(()=>b.textContent='Salin',2000);
+}
+function openUrl() { window.open(deployedUrl,'_blank'); }
+function reset() {
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('progress').classList.remove('show');
+  document.getElementById('form-section').style.display='block';
+  document.getElementById('r-url-row').style.display='none';
+  document.getElementById('r-err').style.display='none';
+  ['s1','s2','s3','s4','s5'].forEach(s=>step(s,''));
+  prog(0); clearFile(); deployedUrl=null;
+}
+function commonRoot(paths) {
+  if (!paths.length) return '';
+  const r = paths[0].split('/')[0]+'/';
+  return paths.every(p=>p.startsWith(r)) ? r : '';
+}
+function sanitize(n) { return n.toLowerCase().replace(/[^a-z0-9-]/g,'-').replace(/-+/g,'-').slice(0,52); }
+async function sha1hex(buf) {
+  const h = await crypto.subtle.digest('SHA-1',buf);
+  return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// GITHUB UPLOAD LOGIC
+// ══════════════════════════════════════════════════════════════
+let ghFile = null;
+let ghDeployedRepoUrl = null;
+let ghDeployedPagesUrl = null;
+let ghVisibility = 'public';
+let ghRepoCheckTimer = null;
+let ghUsername = null;
+
+// Drop zone setup
+const ghDz = document.getElementById('gh-drop-zone');
+ghDz.addEventListener('dragover', e => { e.preventDefault(); ghDz.classList.add('over'); });
+ghDz.addEventListener('dragleave', () => ghDz.classList.remove('over'));
+ghDz.addEventListener('drop', e => {
+  e.preventDefault(); ghDz.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f?.name.endsWith('.zip')) setGhFile(f);
+});
+document.getElementById('gh-zip-input').addEventListener('change', e => {
+  if (e.target.files[0]) setGhFile(e.target.files[0]);
+});
+
+function setGhFile(f) {
+  ghFile = f;
+  document.getElementById('gh-fname').textContent = f.name;
+  document.getElementById('gh-fsize').textContent = fmtBytes(f.size);
+  document.getElementById('gh-file-info').classList.add('show');
+}
+function clearGhFile() {
+  ghFile = null;
+  document.getElementById('gh-zip-input').value = '';
+  document.getElementById('gh-file-info').classList.remove('show');
+}
+function toggleGhPw() {
+  const i = document.getElementById('gh-token');
+  i.type = i.type === 'password' ? 'text' : 'password';
+}
+function setVisibility(v) {
+  ghVisibility = v;
+  document.getElementById('vis-public').classList.toggle('active', v === 'public');
+  document.getElementById('vis-private').classList.toggle('active', v === 'private');
+}
+
+async function onGhTokenChange() {
+  const token = document.getElementById('gh-token').value.trim();
+  ghUsername = null;
+  if (token.length > 10) {
+    try {
+      const r = await fetch('https://api.github.com/user', {
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+      });
+      if (r.ok) {
+        const d = await r.json();
+        ghUsername = d.login;
+      }
+    } catch(e) {}
+    // Re-check repo name if already typed
+    const repoName = document.getElementById('gh-repo-name').value.trim();
+    if (repoName.length >= 2) onGhRepoInput();
+  }
+}
+
+function onGhRepoInput() {
+  const name = document.getElementById('gh-repo-name').value.trim();
+  const icon = document.getElementById('gh-name-check-icon');
+  const msg = document.getElementById('gh-name-msg');
+
+  msg.style.display = 'none';
+  icon.style.display = 'none';
+
+  clearTimeout(ghRepoCheckTimer);
+  if (!name || name.length < 2) return;
+
+  const token = document.getElementById('gh-token').value.trim();
+  if (!token) return;
+
+  icon.style.display = 'inline';
+  icon.innerHTML = '<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="#999" stroke-width="2" style="vertical-align:middle;animation:spin 0.7s linear infinite"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>';
+
+  ghRepoCheckTimer = setTimeout(async () => {
+    if (!ghUsername) {
+      icon.style.display = 'none';
+      return;
+    }
+    try {
+      const sanitized = sanitizeGhRepo(name);
+      const r = await fetch(`https://api.github.com/repos/${ghUsername}/${sanitized}`, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+      });
+      if (r.status === 200) {
+        icon.textContent = '⚠️';
+        msg.style.display = 'block';
+        msg.style.background = '#fffbeb';
+        msg.style.border = '1px solid #fde68a';
+        msg.style.color = '#92400e';
+        msg.textContent = '⚠️ Repo "' + sanitized + '" sudah ada. File baru akan di-commit ke repo yang ada.';
+      } else if (r.status === 404) {
+        icon.textContent = '✅';
+        msg.style.display = 'block';
+        msg.style.background = '#f0fdf4';
+        msg.style.border = '1px solid #bbf7d0';
+        msg.style.color = '#15803d';
+        msg.textContent = '✅ Repo baru akan dibuat: github.com/' + ghUsername + '/' + sanitized;
+      } else {
+        icon.style.display = 'none';
+      }
+    } catch(e) {
+      icon.style.display = 'none';
+    }
+  }, 700);
+}
+
+function sanitizeGhRepo(n) {
+  return n.replace(/[^a-zA-Z0-9._-]/g, '-').replace(/-+/g, '-').replace(/^[-.]|[-.]$/g, '').slice(0, 100) || 'my-repo';
+}
+
+function ghStep(id, state) {
+  const el = document.getElementById(id);
+  el.className = 'step ' + (state === 'done' ? 'done-gh' : state);
+}
+function ghProg(n) { document.getElementById('gh-pbar').style.width = n + '%'; }
+
+async function uploadToGithub() {
+  const token = document.getElementById('gh-token').value.trim();
+  const repoName = document.getElementById('gh-repo-name').value.trim();
+  const initPages = document.getElementById('gh-init-pages').checked;
+
+  if (!token) return alert('Masukkan GitHub Token.');
+  if (!repoName) return alert('Masukkan nama repository.');
+  if (!ghFile) return alert('Pilih file ZIP terlebih dahulu.');
+
+  // Get username if not fetched yet
+  if (!ghUsername) {
+    try {
+      const r = await fetch('https://api.github.com/user', {
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+      });
+      if (!r.ok) throw new Error('Token tidak valid atau tidak memiliki akses.');
+      const d = await r.json();
+      ghUsername = d.login;
+    } catch(e) {
+      return alert('Error: ' + e.message);
+    }
+  }
+
+  const sanitizedRepo = sanitizeGhRepo(repoName);
+
+  document.getElementById('gh-form-section').style.display = 'none';
+  document.getElementById('gh-progress').classList.add('show');
+  ghProg(5);
+
+  try {
+    // Step 1: Read ZIP
+    ghStep('gs1', 'active');
+    const buf = await ghFile.arrayBuffer();
+    ghStep('gs1', 'done'); ghProg(15);
+
+    // Step 2: Extract files
+    ghStep('gs2', 'active');
+    const zip = await JSZip.loadAsync(buf);
+    const all = [], jobs = [];
+    zip.forEach((path, entry) => {
+      if (!entry.dir) jobs.push(entry.async('base64').then(d => all.push({ path, content: d })));
+    });
+    await Promise.all(jobs);
+    const root = commonRoot(all.map(f => f.path));
+    if (root) all.forEach(f => f.path = f.path.slice(root.length));
+    ghStep('gs2', 'done'); ghProg(30);
+
+    // Step 3: Create or get repo
+    ghStep('gs3', 'active');
+    let repoExists = false;
+    const checkR = await fetch(`https://api.github.com/repos/${ghUsername}/${sanitizedRepo}`, {
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+    });
+    if (checkR.status === 200) {
+      repoExists = true;
+    } else if (checkR.status === 404) {
+      // Create repo
+      const createR = await fetch('https://api.github.com/user/repos', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: sanitizedRepo, private: ghVisibility === 'private', auto_init: true, description: 'Uploaded via Deploy Tool' })
+      });
+      if (!createR.ok) {
+        const e = await createR.json().catch(() => ({}));
+        throw new Error(e.message || 'Gagal membuat repository (' + createR.status + ')');
+      }
+      // Wait for GitHub to finish initializing
+      await new Promise(r => setTimeout(r, 2000));
+    } else {
+      throw new Error('Gagal cek repository (' + checkR.status + ')');
+    }
+    ghStep('gs3', 'done'); ghProg(45);
+
+    // Step 4: Upload files via GitHub Contents API (tree method for multiple files)
+    ghStep('gs4', 'active');
+
+    // Get current HEAD sha — if repo is brand new/empty, init it first with a README
+    let baseSha = null;
+    let baseTreeSha = null;
+
+    // Helper: try to get HEAD sha from a branch
+    async function getHeadSha(branch) {
+      const r = await fetch(`https://api.github.com/repos/${ghUsername}/${sanitizedRepo}/git/ref/heads/${branch}`, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+      });
+      if (!r.ok) return null;
+      const d = await r.json();
+      const commitSha = d.object.sha;
+      const cr = await fetch(`https://api.github.com/repos/${ghUsername}/${sanitizedRepo}/git/commits/${commitSha}`, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+      });
+      if (!cr.ok) return { commitSha, treeSha: null };
+      const cd = await cr.json();
+      return { commitSha, treeSha: cd.tree.sha };
+    }
+
+    // Try main then master
+    let headInfo = await getHeadSha('main') || await getHeadSha('master');
+
+    if (!headInfo) {
+      // Repo is completely empty — seed it with a README via Contents API (works on empty repos)
+      const seedR = await fetch(`https://api.github.com/repos/${ghUsername}/${sanitizedRepo}/contents/README.md`, {
+        method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: 'init',
+          content: btoa('# ' + sanitizedRepo),
+        })
+      });
+      if (!seedR.ok) {
+        const e = await seedR.json().catch(() => ({}));
+        throw new Error('Gagal inisialisasi repo kosong (' + seedR.status + '): ' + (e.message || ''));
+      }
+      // Wait a moment then get the new HEAD
+      await new Promise(r => setTimeout(r, 800));
+      headInfo = await getHeadSha('main') || await getHeadSha('master');
+    }
+
+    if (headInfo) {
+      baseSha = headInfo.commitSha;
+      baseTreeSha = headInfo.treeSha;
+    }
+
+    // Create blobs for each file
+    const treeItems = [];
+    for (let i = 0; i < all.length; i++) {
+      const f = all[i];
+      const blobR = await fetch(`https://api.github.com/repos/${ghUsername}/${sanitizedRepo}/git/blobs`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: f.content, encoding: 'base64' })
+      });
+      if (!blobR.ok) {
+        const e = await blobR.json().catch(() => ({}));
+        throw new Error('Gagal upload blob (' + blobR.status + '): ' + (e.message || ''));
+      }
+      const blobD = await blobR.json();
+      treeItems.push({ path: f.path, mode: '100644', type: 'blob', sha: blobD.sha });
+      ghProg(45 + Math.round((i + 1) / all.length * 25));
+    }
+    ghStep('gs4', 'done'); ghProg(70);
+
+    // Step 5: Create tree → commit → update ref
+    ghStep('gs5', 'active');
+    const treePayload = { tree: treeItems };
+    if (baseTreeSha) treePayload.base_tree = baseTreeSha;
+    const treeR = await fetch(`https://api.github.com/repos/${ghUsername}/${sanitizedRepo}/git/trees`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(treePayload)
+    });
+    if (!treeR.ok) {
+      const e = await treeR.json().catch(() => ({}));
+      throw new Error('Gagal membuat tree (' + treeR.status + '): ' + (e.message || ''));
+    }
+    const treeD = await treeR.json();
+
+    // Create commit
+    const commitPayload = {
+      message: '🚀 Upload via Deploy Tool',
+      tree: treeD.sha,
+      author: { name: ghUsername, email: ghUsername + '@users.noreply.github.com', date: new Date().toISOString() }
+    };
+    if (baseSha) commitPayload.parents = [baseSha];
+    else commitPayload.parents = [];
+
+    const commitR = await fetch(`https://api.github.com/repos/${ghUsername}/${sanitizedRepo}/git/commits`, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(commitPayload)
+    });
+    if (!commitR.ok) {
+      const e = await commitR.json().catch(() => ({}));
+      throw new Error('Gagal membuat commit (' + commitR.status + '): ' + (e.message || ''));
+    }
+    const commitD2 = await commitR.json();
+
+    // Update or create ref
+    // Update ref — always PATCH since repo is always initialized above
+    let updated = false;
+    for (const branch of ['main', 'master']) {
+      const refR = await fetch(`https://api.github.com/repos/${ghUsername}/${sanitizedRepo}/git/refs/heads/${branch}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sha: commitD2.sha, force: true })
+      });
+      if (refR.ok) { updated = true; break; }
+    }
+    if (!updated) {
+      // Last resort: create ref
+      await fetch(`https://api.github.com/repos/${ghUsername}/${sanitizedRepo}/git/refs`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: 'refs/heads/main', sha: commitD2.sha })
+      });
+    }
+
+    // Enable GitHub Pages if requested
+    let pagesUrl = null;
+    if (initPages && ghVisibility === 'public') {
+      try {
+        await fetch(`https://api.github.com/repos/${ghUsername}/${sanitizedRepo}/pages`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: { branch: 'main', path: '/' } })
+        });
+        pagesUrl = `https://${ghUsername}.github.io/${sanitizedRepo}`;
+      } catch(e) { /* pages optional */ }
+    }
+
+    ghStep('gs5', 'done'); ghProg(100);
+
+    ghDeployedRepoUrl = `https://github.com/${ghUsername}/${sanitizedRepo}`;
+    ghDeployedPagesUrl = pagesUrl;
+
+    setTimeout(() => showGhResult('ok'), 300);
+
+  } catch(err) {
+    ['gs1','gs2','gs3','gs4','gs5'].forEach(s => {
+      if (document.getElementById(s).className.includes('active')) ghStep(s, 'fail');
+    });
+    setTimeout(() => showGhResult('err', err.message), 300);
+  }
+}
+
+function showGhResult(type, err) {
+  document.getElementById('gh-progress').classList.remove('show');
+  document.getElementById('gh-result').classList.add('show');
+  if (type === 'ok') {
+    document.getElementById('gh-r-icon').innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#238636" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+    document.getElementById('gh-r-title').textContent = 'Upload Berhasil!';
+    document.getElementById('gh-r-sub').textContent = 'Repository kamu sudah live di GitHub.';
+    document.getElementById('gh-r-repo-url').textContent = ghDeployedRepoUrl;
+    document.getElementById('gh-r-repo-row').style.display = 'flex';
+    if (ghDeployedPagesUrl) {
+      document.getElementById('gh-r-pages-url').textContent = ghDeployedPagesUrl + ' (aktif dalam ~1 menit)';
+      document.getElementById('gh-r-pages-row').style.display = 'flex';
+    }
+  } else {
+    document.getElementById('gh-r-icon').innerHTML = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    document.getElementById('gh-r-title').textContent = 'Upload Gagal';
+    document.getElementById('gh-r-sub').textContent = 'Terjadi kesalahan.';
+    const eb = document.getElementById('gh-r-err');
+    eb.textContent = err; eb.style.display = 'block';
+  }
+}
+
+function sendToVercel() {
+  if (!ghDeployedRepoUrl) return;
+  switchDeployTab('github');
+  document.getElementById('gh-repo-url-input').value = ghDeployedRepoUrl;
+  const ghTok = document.getElementById('gh-token').value.trim();
+  if (ghTok) document.getElementById('gh-vercel-token').value = ghTok;
+  onGhRepoUrlInput();
+  document.querySelector('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copyGhUrl(type) {
+  const url = type === 'repo' ? ghDeployedRepoUrl : ghDeployedPagesUrl;
+  navigator.clipboard.writeText(url);
+  const btns = type === 'repo'
+    ? document.querySelectorAll('#gh-r-repo-row .sm-btn')
+    : document.querySelectorAll('#gh-r-pages-row .sm-btn');
+  btns[0].textContent = 'Tersalin!';
+  setTimeout(() => btns[0].textContent = 'Salin', 2000);
+}
+function openGhUrl(type) {
+  const url = type === 'repo' ? ghDeployedRepoUrl : ghDeployedPagesUrl?.split(' ')[0];
+  if (url) window.open(url, '_blank');
+}
+function resetGh() {
+  document.getElementById('gh-result').classList.remove('show');
+  document.getElementById('gh-progress').classList.remove('show');
+  document.getElementById('gh-form-section').style.display = 'block';
+  document.getElementById('gh-r-repo-row').style.display = 'none';
+  document.getElementById('gh-r-pages-row').style.display = 'none';
+  document.getElementById('gh-r-err').style.display = 'none';
+  ['gs1','gs2','gs3','gs4','gs5'].forEach(s => ghStep(s, ''));
+  ghProg(0); clearGhFile();
+  ghDeployedRepoUrl = null; ghDeployedPagesUrl = null;
+}
+
+// ══════════════════════════════════════════════════════════════
+// VERCEL: DEPLOY FROM GITHUB
+// ══════════════════════════════════════════════════════════════
+
+function switchDeployTab(tab) {
+  document.getElementById('tab-zip').classList.toggle('active', tab === 'zip');
+  document.getElementById('tab-github').classList.toggle('active', tab === 'github');
+  document.getElementById('tab-content-zip').style.display = tab === 'zip' ? 'block' : 'none';
+  document.getElementById('tab-content-github').style.display = tab === 'github' ? 'block' : 'none';
+}
+
+let ghVercelUser = null;
+let ghRepoUrlTimer = null;
+
+function toggleGhVercelPw() {
+  const i = document.getElementById('gh-vercel-token');
+  i.type = i.type === 'password' ? 'text' : 'password';
+}
+
+async function onGhVercelTokenChange() {
+  const token = document.getElementById('gh-vercel-token').value.trim();
+  ghVercelUser = null;
+  if (token.length > 10) {
+    try {
+      const r = await fetch('https://api.github.com/user', {
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+      });
+      if (r.ok) { const d = await r.json(); ghVercelUser = d.login; }
+    } catch(e) {}
+    // Re-validate repo URL if already filled
+    const url = document.getElementById('gh-repo-url-input').value.trim();
+    if (url) onGhRepoUrlInput();
+  }
+}
+
+function parseGithubUrl(url) {
+  // Accept: https://github.com/user/repo, github.com/user/repo, user/repo
+  url = url.trim().replace(/\.git$/, '').replace(/\/$/, '');
+  const match = url.match(/(?:github\.com\/)?([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)/);
+  if (match) return { owner: match[1], repo: match[2] };
+  return null;
+}
+
+function onGhRepoUrlInput() {
+  const msg = document.getElementById('gh-repo-url-msg');
+  msg.style.display = 'none';
+  clearTimeout(ghRepoUrlTimer);
+  const raw = document.getElementById('gh-repo-url-input').value.trim();
+  if (!raw) return;
+  const parsed = parseGithubUrl(raw);
+  if (!parsed) {
+    msg.style.display = 'block';
+    msg.style.cssText = 'display:block;margin-top:5px;padding:7px 10px;background:#fff5f5;border:1px solid #fecaca;border-radius:7px;font-size:11px;color:#b91c1c;font-family:var(--mono);line-height:1.6;';
+    msg.textContent = '❌ Format URL tidak dikenali. Contoh: https://github.com/user/repo';
+    return;
+  }
+  const token = document.getElementById('gh-vercel-token').value.trim();
+  if (!token) return;
+  ghRepoUrlTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`https://api.github.com/repos/${parsed.owner}/${parsed.repo}`, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+      });
+      if (r.ok) {
+        const d = await r.json();
+        msg.style.cssText = 'display:block;margin-top:5px;padding:7px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;font-size:11px;color:#15803d;font-family:var(--mono);line-height:1.6;';
+        msg.textContent = `✅ Repo ditemukan: ${d.full_name} — ${d.default_branch} branch, ${d.size} KB`;
+      } else if (r.status === 404) {
+        msg.style.cssText = 'display:block;margin-top:5px;padding:7px 10px;background:#fff5f5;border:1px solid #fecaca;border-radius:7px;font-size:11px;color:#b91c1c;font-family:var(--mono);line-height:1.6;';
+        msg.textContent = '❌ Repo tidak ditemukan atau private tanpa akses.';
+      } else {
+        msg.style.display = 'none';
+      }
+    } catch(e) { msg.style.display = 'none'; }
+  }, 600);
+}
+
+async function deployFromGithub() {
+  const vercelToken = document.getElementById('api-token').value.trim();
+  const ghToken = document.getElementById('gh-vercel-token').value.trim();
+  const repoUrlRaw = document.getElementById('gh-repo-url-input').value.trim();
+  const projectName = document.getElementById('project-name').value.trim();
+
+  if (!vercelToken) return alert('Masukkan Vercel API Token di atas.');
+  if (!ghToken) return alert('Masukkan GitHub Token.');
+  if (!repoUrlRaw) return alert('Masukkan URL Repository GitHub.');
+  if (!projectName) return alert('Masukkan Nama Project.');
+
+  const parsed = parseGithubUrl(repoUrlRaw);
+  if (!parsed) return alert('URL GitHub tidak valid.');
+
+  // Hide form, show progress
+  document.getElementById('form-section').style.display = 'none';
+  document.getElementById('progress').classList.add('show');
+  prog(5);
+
+  try {
+    // Step 1: Fetch repo info + file tree from GitHub
+    step('s1', 'active');
+    const repoR = await fetch(`https://api.github.com/repos/${parsed.owner}/${parsed.repo}`, {
+      headers: { 'Authorization': 'Bearer ' + ghToken, 'Accept': 'application/vnd.github+json' }
+    });
+    if (!repoR.ok) throw new Error('Gagal akses repo GitHub (' + repoR.status + '). Pastikan token benar dan repo bisa diakses.');
+    const repoData = await repoR.json();
+    const branch = repoData.default_branch || 'main';
+    step('s1', 'done'); prog(15);
+
+    // Step 2: Get file tree recursively
+    step('s2', 'active');
+    const treeR = await fetch(`https://api.github.com/repos/${parsed.owner}/${parsed.repo}/git/trees/${branch}?recursive=1`, {
+      headers: { 'Authorization': 'Bearer ' + ghToken, 'Accept': 'application/vnd.github+json' }
+    });
+    if (!treeR.ok) throw new Error('Gagal ambil file tree (' + treeR.status + ')');
+    const treeData = await treeR.json();
+    const blobs = treeData.tree.filter(f => f.type === 'blob');
+    if (!blobs.length) throw new Error('Tidak ada file di repository.');
+
+    // Download all files via GitHub Blobs API (CORS-safe, no raw.githubusercontent needed)
+    const files = [];
+    for (let i = 0; i < blobs.length; i++) {
+      const f = blobs[i];
+      const blobApiR = await fetch(`https://api.github.com/repos/${parsed.owner}/${parsed.repo}/git/blobs/${f.sha}`, {
+        headers: { 'Authorization': 'Bearer ' + ghToken, 'Accept': 'application/vnd.github+json' }
+      });
+      if (!blobApiR.ok) {
+        const e = await blobApiR.json().catch(() => ({}));
+        throw new Error('Gagal download "' + f.path + '" (' + blobApiR.status + '): ' + (e.message || ''));
+      }
+      const blobApiData = await blobApiR.json();
+      // GitHub API returns content as base64 with newlines — strip them
+      const b64clean = blobApiData.content.replace(/\n/g, '');
+      files.push({ name: f.path, data: b64clean });
+      prog(15 + Math.round((i + 1) / blobs.length * 25));
+    }
+    if (!files.length) throw new Error('Tidak ada file yang berhasil diunduh dari repo.');
+    step('s2', 'done'); prog(40);
+
+    // Step 3: Upload files to Vercel
+    step('s3', 'active');
+    const uploadedFiles = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      const binStr = atob(f.data);
+      const bytes = new Uint8Array(binStr.length);
+      for (let b = 0; b < binStr.length; b++) bytes[b] = binStr.charCodeAt(b);
+      const sha = await sha1hex(bytes.buffer);
+      const up = await fetch('https://api.vercel.com/v2/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + vercelToken,
+          'Content-Type': 'application/octet-stream',
+          'x-vercel-digest': sha,
+          'Content-Length': bytes.length
+        },
+        body: bytes
+      });
+      if (up.status !== 200 && up.status !== 201) {
+        const e = await up.json().catch(() => ({}));
+        throw new Error('Gagal upload file ' + f.name + ': ' + (e.error?.message || up.status));
+      }
+      uploadedFiles.push({ file: f.name, sha });
+      prog(40 + Math.round((i + 1) / files.length * 20));
+    }
+    step('s3', 'done'); prog(60);
+
+    // Step 4: Create deployment
+    step('s4', 'active');
+    const sanitized = projectName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const deployR = await fetch('https://api.vercel.com/v13/deployments', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + vercelToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: sanitized,
+        files: uploadedFiles,
+        projectSettings: { framework: null },
+        target: 'production'
+      })
+    });
+    if (!deployR.ok) {
+      const e = await deployR.json().catch(() => ({}));
+      throw new Error(e.error?.message || 'Gagal membuat deployment (' + deployR.status + ')');
+    }
+    const deployData = await deployR.json();
+    const deployId = deployData.id;
+    step('s4', 'done'); prog(75);
+
+    // Step 5: Poll until ready
+    step('s5', 'active');
+    let deployUrl = null;
+    for (let attempt = 0; attempt < 40; attempt++) {
+      await new Promise(r => setTimeout(r, 3000));
+      const statusR = await fetch(`https://api.vercel.com/v13/deployments/${deployId}`, {
+        headers: { 'Authorization': 'Bearer ' + vercelToken }
+      });
+      if (!statusR.ok) continue;
+      const statusData = await statusR.json();
+      if (statusData.readyState === 'READY' || statusData.status === 'READY') {
+        const aliases = statusData.aliases || statusData.alias || [];
+        const cleanAlias = aliases.find(a => !a.match(/-[a-z0-9]{9}-/)) || aliases[0];
+        deployUrl = cleanAlias ? 'https://' + cleanAlias : 'https://' + sanitized + '.vercel.app';
+        break;
+      }
+      if (statusData.readyState === 'ERROR' || statusData.status === 'ERROR') {
+        throw new Error('Deployment gagal di Vercel. Cek Vercel dashboard untuk detail.');
+      }
+      prog(75 + Math.min(attempt, 20));
+    }
+    if (!deployUrl) deployUrl = 'https://' + sanitized + '.vercel.app';
+
+    step('s5', 'done'); prog(100);
+
+    setTimeout(() => showResult('ok', deployUrl), 300);
+
+  } catch(err) {
+    ['s1','s2','s3','s4','s5'].forEach(s => {
+      if (document.getElementById(s).className.includes('active')) step(s, 'fail');
+    });
+    setTimeout(() => showResult('err', null, err.message), 300);
+  }
+}
+</script>
+</body>
+</html>
