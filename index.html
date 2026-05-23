@@ -1225,25 +1225,55 @@ async function deploy() {
     step('s3','done'); prog(60);
 
     step('s4','active');
+    const sanitizedName = sanitize(name);
+    let zipProductionAlias = sanitizedName + '.vercel.app';
+
+    // Cek project sudah ada → pakai projectId agar alias lama tetap sama
+    let zipProjectId = null;
+    try {
+      const zpR = await fetch(`https://api.vercel.com/v9/projects/${sanitizedName}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (zpR.ok) {
+        const zpData = await zpR.json();
+        zipProjectId = zpData.id;
+        const zpAliases = zpData.alias || zpData.aliases || [];
+        const zpClean = zpAliases.find(a => a.deployment && !a.domain.match(/-[a-z0-9]{9}-/));
+        if (zpClean) zipProductionAlias = zpClean.domain;
+        else if (zpAliases.length) zipProductionAlias = zpAliases[0].domain || zipProductionAlias;
+      }
+    } catch(e) {}
+
+    const deployBody = {name:sanitizedName, files:deployFiles, projectSettings:{framework:null}, target:'production'};
+    if (zipProjectId) deployBody.projectId = zipProjectId;
+
     const dr = await fetch('https://api.vercel.com/v13/deployments', {
       method:'POST',
       headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-      body: JSON.stringify({name:sanitize(name), files:deployFiles, projectSettings:{framework:null}, target:'production'})
+      body: JSON.stringify(deployBody)
     });
     if (!dr.ok) {
       const e = await dr.json().catch(()=>({}));
       throw new Error(e.error?.message || 'Deploy gagal ('+dr.status+')');
     }
     const dd = await dr.json();
-    const sanitizedName = sanitize(name);
-    const url = 'https://' + sanitizedName + '.vercel.app';
     step('s4','done'); prog(75);
 
     step('s5','active');
     const prodAlias = await waitReady(token, dd.id);
+
+    // Assign alias eksplisit agar URL produksi pasti tetap sama
+    try {
+      await fetch(`https://api.vercel.com/v2/deployments/${dd.id}/aliases`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alias: zipProductionAlias })
+      });
+    } catch(e) {}
+
     step('s5','done'); prog(100);
 
-    const finalUrl = prodAlias || url;
+    const finalUrl = 'https://' + zipProductionAlias;
     deployedUrl = finalUrl;
     setTimeout(() => { showResult('ok', finalUrl); loadHistory(); }, 300);
   } catch(err) {
@@ -1991,18 +2021,41 @@ async function deployFromGithub() {
     }
     step('s3', 'done'); prog(60);
 
-    // Step 4: Create deployment
+    // Step 4: Create deployment (link ke project yang sudah ada agar URL tetap sama)
     step('s4', 'active');
     const sanitized = projectName.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+
+    // Cek apakah project sudah ada di Vercel
+    let existingProjectId = null;
+    let productionAlias = sanitized + '.vercel.app';
+    try {
+      const projR = await fetch(`https://api.vercel.com/v9/projects/${sanitized}`, {
+        headers: { 'Authorization': 'Bearer ' + vercelToken }
+      });
+      if (projR.ok) {
+        const projData = await projR.json();
+        existingProjectId = projData.id;
+        // Ambil alias production yang sudah ada
+        const aliases = projData.alias || projData.aliases || [];
+        const cleanProd = aliases.find(a => a.deployment && !a.domain.match(/-[a-z0-9]{9}-/));
+        if (cleanProd) productionAlias = cleanProd.domain;
+        else if (aliases.length) productionAlias = aliases[0].domain || productionAlias;
+      }
+    } catch(e) { /* project belum ada, lanjut buat baru */ }
+
+    // Deploy — kalau project sudah ada, sertakan projectId agar Vercel update alias yang sama
+    const deployBody = {
+      name: sanitized,
+      files: uploadedFiles,
+      projectSettings: { framework: null },
+      target: 'production'
+    };
+    if (existingProjectId) deployBody.projectId = existingProjectId;
+
     const deployR = await fetch('https://api.vercel.com/v13/deployments', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + vercelToken, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: sanitized,
-        files: uploadedFiles,
-        projectSettings: { framework: null },
-        target: 'production'
-      })
+      body: JSON.stringify(deployBody)
     });
     if (!deployR.ok) {
       const e = await deployR.json().catch(() => ({}));
@@ -2012,7 +2065,7 @@ async function deployFromGithub() {
     const deployId = deployData.id;
     step('s4', 'done'); prog(75);
 
-    // Step 5: Poll until ready
+    // Step 5: Poll until ready, then assign alias jika belum ter-assign
     step('s5', 'active');
     let deployUrl = null;
     for (let attempt = 0; attempt < 40; attempt++) {
@@ -2023,9 +2076,17 @@ async function deployFromGithub() {
       if (!statusR.ok) continue;
       const statusData = await statusR.json();
       if (statusData.readyState === 'READY' || statusData.status === 'READY') {
-        const aliases = statusData.aliases || statusData.alias || [];
-        const cleanAlias = aliases.find(a => !a.match(/-[a-z0-9]{9}-/)) || aliases[0];
-        deployUrl = cleanAlias ? 'https://' + cleanAlias : 'https://' + sanitized + '.vercel.app';
+        // Coba assign alias production secara eksplisit agar URL pasti sama
+        try {
+          await fetch(`https://api.vercel.com/v2/deployments/${deployId}/aliases`, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + vercelToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ alias: productionAlias })
+          });
+        } catch(e) { /* alias mungkin sudah ter-assign otomatis */ }
+
+        // Ambil URL final — utamakan productionAlias karena kita assign manual
+        deployUrl = 'https://' + productionAlias;
         break;
       }
       if (statusData.readyState === 'ERROR' || statusData.status === 'ERROR') {
@@ -2033,7 +2094,7 @@ async function deployFromGithub() {
       }
       prog(75 + Math.min(attempt, 20));
     }
-    if (!deployUrl) deployUrl = 'https://' + sanitized + '.vercel.app';
+    if (!deployUrl) deployUrl = 'https://' + productionAlias;
 
     step('s5', 'done'); prog(100);
 
